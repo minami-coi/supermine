@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { createGame, DIFFICULTIES, revealCell, toggleFlag, chordCell } from './game/board'
 import { comboMultiplier, countCorrectFlags } from './game/scoring'
 import ParticleCanvas from './effects/ParticleCanvas'
+import bombImage from './assets/bomb.png'
 import './App.css'
 
 const formatTime = seconds => `${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, '0')}`
@@ -92,7 +93,7 @@ function App() {
           const tileIndex = r * game.config.cols + c + 1
           const randomOrder = Math.abs(Math.sin(tileIndex * 12.9898 + game.config.rows * 78.233) * 43758.5453) % 1
           const fallStyle = game.status === 'lost' ? { '--fall-delay': `${Math.floor(randomOrder * 950)}ms`, '--fall-x': `${Math.round((randomOrder - 0.5) * 180)}px`, '--fall-rotation': `${Math.round((randomOrder - 0.5) * 900)}deg` } : undefined
-          return <button key={`${r}-${c}`} data-cell={`${r}-${c}`} role="gridcell" aria-label={`第${r + 1}行第${c + 1}列${cell.isFlagged ? '、旗' : cell.isRevealed ? (cell.hasMine ? '、地雷' : `、${cell.adjacentMines || '空白'}`) : '、未開封'}`} className={classes} style={fallStyle} onClick={() => cell.isRevealed ? chord(r, c) : flagMode ? flag(r, c) : open(r, c)} onContextMenu={e => { e.preventDefault(); flag(r, c) }} onAuxClick={e => { if (e.button === 1) { e.preventDefault(); chord(r, c) } }}>{cell.isFlagged ? <span className="flag-icon">⚑</span> : shownMine ? '✹' : cell.isRevealed && cell.adjacentMines ? cell.adjacentMines : ''}</button>
+          return <button key={`${r}-${c}`} data-cell={`${r}-${c}`} role="gridcell" aria-label={`第${r + 1}行第${c + 1}列${cell.isFlagged ? '、旗' : cell.isRevealed ? (cell.hasMine ? '、地雷' : `、${cell.adjacentMines || '空白'}`) : '、未開封'}`} className={classes} style={fallStyle} onClick={() => cell.isRevealed ? chord(r, c) : flagMode ? flag(r, c) : open(r, c)} onContextMenu={e => { e.preventDefault(); flag(r, c) }} onAuxClick={e => { if (e.button === 1) { e.preventDefault(); chord(r, c) } }}>{cell.isFlagged ? <span className="flag-icon">⚑</span> : shownMine ? <img className="mine-image" src={bombImage} alt="" draggable="false" /> : cell.isRevealed && cell.adjacentMines ? cell.adjacentMines : ''}</button>
         }))}
       </div></div>
       <div className="board-footer"><div className="legend"><span><i className="legend-open"/> 開封済み</span><span><i className="legend-hidden"/> 未開封</span></div><button className={`flag-toggle ${flagMode ? 'active' : ''}`} aria-pressed={flagMode} onClick={() => setFlagMode(active => !active)}>⚑ <span>{flagMode ? '旗モード ON' : '旗モード'}</span></button></div>
