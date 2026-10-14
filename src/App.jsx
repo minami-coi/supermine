@@ -7,6 +7,8 @@ import './App.css'
 
 const formatTime = seconds => `${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, '0')}`
 const COMBO_MESSAGES = ['NICE!!', 'GOOD JOB!!', 'EXCELLENT!!!', 'UNSTOPPABLE!!!', 'MAXIMUM OVERDRIVE!!!!', 'ABSOLUTE CHAOS!!!!', 'LIMIT BREAK!!!!!!', 'WHAT IS HAPPENING!??!?!?!?!?']
+const addScore = (current, points) => Math.min(Number.MAX_SAFE_INTEGER, current + points)
+const comboTickScore = combo => Math.min(1_000_000_000_000_000, Math.round(10 * 2 ** Math.min(combo - 1, 47)))
 
 function App() {
   const [game, setGame] = useState(() => createGame('beginner'))
@@ -25,6 +27,14 @@ function App() {
     return () => window.clearInterval(timer)
   }, [game.status])
   useEffect(() => {
+    if (game.status !== 'playing' || combo <= 0) return undefined
+    const timer = window.setInterval(() => {
+      if (Date.now() - lastComboAt >= 2000) { window.clearInterval(timer); return }
+      setScore(value => addScore(value, comboTickScore(combo)))
+    }, 100)
+    return () => window.clearInterval(timer)
+  }, [game.status, combo, lastComboAt])
+  useEffect(() => {
     if (!effectText) return undefined
     const timeout = window.setTimeout(() => setEffectText(null), effectText.kind === 'won' ? 2400 : 1100)
     return () => window.clearTimeout(timeout)
@@ -37,6 +47,7 @@ function App() {
   const applyAction = (operation, kind, row, col) => {
     const next = operation(game)
     if (next === game) return
+    const actionTime = Date.now()
     const opened = next.revealedCount - game.revealedCount
     const openedSafe = next.board.flat().filter(cell => cell.isRevealed && !cell.hasMine).length - game.board.flat().filter(cell => cell.isRevealed && !cell.hasMine).length
     const flagChange = next.flaggedCount !== game.flaggedCount
@@ -46,8 +57,8 @@ function App() {
     let nextCombo = combo
     let points = 0
     if (comboAction) {
-      nextCombo = now - lastComboAt <= 2000 ? combo + 1 : 1
-      setCombo(nextCombo); setLastComboAt(now); setMaxCombo(value => Math.max(value, nextCombo))
+      nextCombo = actionTime - lastComboAt <= 2000 ? combo + 1 : 1
+      setCombo(nextCombo); setLastComboAt(actionTime); setMaxCombo(value => Math.max(value, nextCombo))
       if (nextCombo >= 4 && next.status === 'playing') {
         const messageIndex = Math.min(COMBO_MESSAGES.length - 1, nextCombo - 4)
         setComboMessage({ id: `${Date.now()}-${Math.random()}`, text: COMBO_MESSAGES[messageIndex], combo: nextCombo })
@@ -56,10 +67,10 @@ function App() {
       if (safeOpen) points += openedSafe * 10 * multiplier
       if (next.status === 'won') points += 500
       if (next.status === 'won' || next.status === 'lost') points += countCorrectFlags(next.board) * 100
-      setScore(value => value + points)
+      setScore(value => addScore(value, points))
     } else if (ended) {
       points = countCorrectFlags(next.board) * 100
-      setScore(value => value + points)
+      setScore(value => addScore(value, points))
     }
     if (ended) { setCombo(0); setLastComboAt(0) }
     setGame(next)
@@ -86,7 +97,7 @@ function App() {
     {effectText && <div key={effectText.id} className={`effect-banner ${effectText.kind}`} style={{ left: effectText.x, top: effectText.y, fontSize: ['won', 'lost', 'chain'].includes(effectText.kind) ? undefined : `${Math.min(64, 22 + Math.max(0, effectText.combo - 1) * 4)}px`, filter: `drop-shadow(0 0 ${Math.min(26, 5 + effectText.combo * 1.3)}px #ffca55)` }} aria-live="polite">{effectText.label}{effectText.points > 0 && !['won', 'lost', 'chain'].includes(effectText.kind) && <small>+{effectText.points}</small>}{effectText.kind === 'won' && <small>SCORE {effectText.score.toLocaleString()}</small>}{!['won', 'lost'].includes(effectText.kind) && effectText.combo > 0 && <small className="combo-label" style={{ fontSize: `${Math.min(27, 13 + effectText.combo * 1.2)}px` }}>COMBO ×{effectText.combo}</small>}</div>}
     <section className="game-card" aria-label="マインスイーパー" style={{ '--flag-glow': 0.04 + flagProgress * 0.3 }}>
       <div className="game-toolbar"><button className="restart" onClick={() => newGame()} aria-label="はじめから">↻ <span>はじめから</span></button><div className="difficulty" aria-label="難易度">{Object.entries(DIFFICULTIES).map(([key, item]) => <button key={key} className={game.difficulty === key ? 'selected' : ''} onClick={() => newGame(key)}>{item.label}</button>)}</div></div>
-      <div className="game-metrics"><div className="metric"><span>残り地雷</span><strong>{game.config.mines - game.flaggedCount}</strong></div><div className="metric"><span>時間</span><strong>{formatTime(elapsed)}</strong></div><div className="metric"><span>SCORE</span><strong>{score.toLocaleString()}</strong></div><div className={visibleCombo ? 'metric combo-count active' : 'metric combo-count'}><span>COMBO</span><strong>{visibleCombo ? `×${visibleCombo}` : '—'}</strong></div><div className="metric"><span>最大コンボ</span><strong>{maxCombo}</strong></div></div>
+      <div className="game-metrics"><div className="metric"><span>残り地雷</span><strong>{game.config.mines - game.flaggedCount}</strong></div><div className="metric"><span>時間</span><strong>{formatTime(elapsed)}</strong></div><div className="metric score-metric"><span>SCORE</span><strong style={{ fontSize: `${Math.max(9, 22 - Math.max(0, score.toLocaleString().length - 8) * 1.1)}px` }}>{score.toLocaleString()}</strong><i className="score-meter" aria-hidden="true"><b style={{ width: `${Math.min(96, score / (score + 1500) * 100)}%` }} /></i></div><div className={visibleCombo ? 'metric combo-count active' : 'metric combo-count'}><span>COMBO</span><strong>{visibleCombo ? `×${visibleCombo}` : '—'}</strong></div><div className="metric"><span>最大コンボ</span><strong>{maxCombo}</strong></div></div>
       {outcome && <div className={`result ${game.status}`}>{outcome} <span>{game.status === 'won' ? `TIME ${formatTime(elapsed)} · MAX COMBO ${maxCombo}` : `SCORE ${score.toLocaleString()} · MAX COMBO ${maxCombo}`}</span></div>}
       <div className="board-wrap"><div className={`board ${game.difficulty}`} role="grid" aria-label={`${game.config.rows}行${game.config.cols}列の盤面`} onContextMenu={e => e.preventDefault()}>
         {game.board.map((row, r) => row.map((cell, c) => {
