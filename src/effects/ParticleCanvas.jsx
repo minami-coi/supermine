@@ -17,6 +17,73 @@ export default function ParticleCanvas({ event, reducedMotion }) {
       ctx.setTransform(ratio, 0, 0, ratio, 0, 0)
     }
     resize()
+    if (event.kind === 'won') {
+      const particles = []
+      const rings = []
+      let frame
+      let last = 0
+      let nextBurst = 0
+      const started = performance.now()
+      const burstDuration = 2250
+      const launchBurst = () => {
+        const x = window.innerWidth * (0.06 + Math.random() * 0.88)
+        const y = window.innerHeight * (0.08 + Math.random() * 0.67)
+        const color = palette[Math.floor(Math.random() * palette.length)]
+        const size = 42 + Math.floor(Math.random() * 20)
+        rings.push({ x, y, radius: 2, life: 1, color })
+        for (let i = 0; i < size; i++) {
+          const angle = Math.PI * 2 * i / size + (Math.random() - 0.5) * 0.12
+          const speed = 2.2 + Math.random() * 7.2
+          particles.push({ x, y, px: x, py: y, vx: Math.cos(angle) * speed, vy: Math.sin(angle) * speed, life: 0.8 + Math.random() * 0.65, decay: 0.005 + Math.random() * 0.006, size: 2 + Math.random() * 4.5, color: Math.random() < 0.22 ? '#fff4bd' : color, spin: Math.random() * 6, star: Math.random() < 0.42 })
+        }
+      }
+      const drawVictory = time => {
+        if (document.hidden) { frame = requestAnimationFrame(drawVictory); return }
+        if (time - last < 16) { frame = requestAnimationFrame(drawVictory); return }
+        last = time
+        const elapsed = time - started
+        if (elapsed >= nextBurst && elapsed < burstDuration) {
+          launchBurst()
+          nextBurst += 125 + Math.random() * 100
+        }
+        ctx.clearRect(0, 0, window.innerWidth, window.innerHeight)
+        ctx.globalCompositeOperation = 'lighter'
+        for (let i = rings.length - 1; i >= 0; i--) {
+          const ring = rings[i]
+          ring.radius += 5.2; ring.life -= 0.025
+          if (ring.life <= 0) { rings.splice(i, 1); continue }
+          ctx.globalAlpha = ring.life * 0.58
+          ctx.strokeStyle = ring.color; ctx.lineWidth = 2.5; ctx.shadowColor = ring.color; ctx.shadowBlur = 20
+          ctx.beginPath(); ctx.arc(ring.x, ring.y, ring.radius, 0, Math.PI * 2); ctx.stroke()
+        }
+        for (let i = particles.length - 1; i >= 0; i--) {
+          const p = particles[i]
+          p.px = p.x; p.py = p.y; p.x += p.vx; p.y += p.vy; p.vy += 0.055; p.vx *= 0.989; p.life -= p.decay; p.spin += 0.07
+          if (p.life <= 0 || p.y > window.innerHeight + 40) { particles.splice(i, 1); continue }
+          ctx.globalAlpha = Math.min(1, p.life)
+          ctx.strokeStyle = p.color; ctx.lineWidth = p.size * 0.8; ctx.shadowColor = p.color; ctx.shadowBlur = 15
+          ctx.beginPath(); ctx.moveTo(p.px, p.py); ctx.lineTo(p.x, p.y); ctx.stroke()
+          ctx.fillStyle = p.color; ctx.save(); ctx.translate(p.x, p.y); ctx.rotate(p.spin)
+          if (p.star) {
+            ctx.beginPath()
+            for (let point = 0; point < 10; point++) {
+              const radius = point % 2 ? p.size * 0.42 : p.size
+              const angle = -Math.PI / 2 + point * Math.PI / 5
+              const px = Math.cos(angle) * radius, py = Math.sin(angle) * radius
+              if (point === 0) ctx.moveTo(px, py); else ctx.lineTo(px, py)
+            }
+            ctx.closePath(); ctx.fill()
+          } else { ctx.beginPath(); ctx.arc(0, 0, p.size, 0, Math.PI * 2); ctx.fill() }
+          ctx.restore()
+        }
+        ctx.globalAlpha = 1; ctx.globalCompositeOperation = 'source-over'; ctx.shadowBlur = 0
+        if (elapsed < burstDuration || particles.length || rings.length) frame = requestAnimationFrame(drawVictory)
+        else ctx.clearRect(0, 0, window.innerWidth, window.innerHeight)
+      }
+      window.addEventListener('resize', resize)
+      frame = requestAnimationFrame(drawVictory)
+      return () => { cancelAnimationFrame(frame); window.removeEventListener('resize', resize); ctx.clearRect(0, 0, canvas.width, canvas.height) }
+    }
     const big = event.kind === 'won' || event.kind === 'lost'
     const combo = Math.max(1, event.combo || 1)
     const intensity = Math.min(2.2, 1 + (combo - 1) * 0.12)
