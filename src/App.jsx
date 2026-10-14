@@ -68,7 +68,7 @@ function App() {
     const rect = tile?.getBoundingClientRect()
     const position = rect ? { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 } : {}
     const id = `${Date.now()}-${Math.random()}`
-    setEffect({ id, kind: eventKind, count: opened, ...position })
+    setEffect({ id, kind: eventKind, count: opened, combo: nextCombo, ...position })
     const label = eventKind === 'won' ? 'YOU ARE A LEGEND!' : eventKind === 'lost' ? 'BOOOOOOM!!!' : eventKind === 'chain' ? (opened >= 10 ? `MASSIVE CHAIN! ×${opened}` : `CHAIN ×${opened}`) : eventKind === 'flag' ? (next.board[row][col].isFlagged ? 'FLAG!' : 'REMOVED') : `+${points}`
     if (eventKind !== 'cell' || safeOpen) setEffectText({ id, kind: eventKind, label, points, score: score + points, combo: nextCombo, multiplier: comboMultiplier(nextCombo), ...position })
   }
@@ -80,7 +80,7 @@ function App() {
 
   return <main className={`game-shell ${effect?.kind === 'lost' ? 'shake' : ''} ${effect?.kind === 'won' ? 'celebrate' : ''}`}>
     <ParticleCanvas event={effect} reducedMotion={reducedMotion} />
-    {effectText && <div key={effectText.id} className={`effect-banner ${effectText.kind}`} style={{ left: effectText.x, top: effectText.y }} aria-live="polite">{effectText.label}{effectText.points > 0 && !['won', 'lost', 'chain'].includes(effectText.kind) && <small>+{effectText.points}</small>}{effectText.kind === 'won' && <small>SCORE {effectText.score.toLocaleString()}</small>}</div>}
+    {effectText && <div key={effectText.id} className={`effect-banner ${effectText.kind}`} style={{ left: effectText.x, top: effectText.y, fontSize: ['won', 'lost', 'chain'].includes(effectText.kind) ? undefined : `${Math.min(64, 22 + Math.max(0, effectText.combo - 1) * 4)}px`, filter: `drop-shadow(0 0 ${Math.min(26, 5 + effectText.combo * 1.3)}px #ffca55)` }} aria-live="polite">{effectText.label}{effectText.points > 0 && !['won', 'lost', 'chain'].includes(effectText.kind) && <small>+{effectText.points}</small>}{effectText.kind === 'won' && <small>SCORE {effectText.score.toLocaleString()}</small>}{!['won', 'lost'].includes(effectText.kind) && effectText.combo > 0 && <small className="combo-label" style={{ fontSize: `${Math.min(27, 13 + effectText.combo * 1.2)}px` }}>COMBO ×{effectText.combo}</small>}</div>}
     <header className="topbar"><div className="brand-mark">✳</div><div className="brand"><span>FIELD NOTES / 01</span><strong>Super Mine Sweeper</strong></div><span className="edition">MINESWEEPER CLUB</span></header>
     <section className="intro"><div className="eyebrow">A LITTLE GAME OF LOGIC</div><h1>静かな盤面に、<br className="mobile-break"/>ひとつずつ答えを。</h1><p>数字を手がかりに、地雷のない道を見つけよう。</p></section>
     <section className="game-card" aria-label="マインスイーパー">
