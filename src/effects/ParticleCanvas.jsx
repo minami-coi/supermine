@@ -2,11 +2,11 @@ import { useEffect, useRef } from 'react'
 
 const palette = ['#f5bd4f', '#e97959', '#74a87a', '#7ba9d4', '#d77db2', '#fff0a8']
 
-export default function ParticleCanvas({ event, reducedMotion }) {
+export default function ParticleCanvas({ event }) {
   const canvasRef = useRef(null)
   useEffect(() => {
     const canvas = canvasRef.current
-    if (!canvas || !event || reducedMotion) return undefined
+    if (!canvas || !event) return undefined
     const ctx = canvas.getContext('2d')
     const ratio = Math.min(window.devicePixelRatio || 1, 2)
     const resize = () => {
@@ -133,6 +133,6 @@ export default function ParticleCanvas({ event, reducedMotion }) {
     window.addEventListener('resize', resize)
     frame = requestAnimationFrame(draw)
     return () => { cancelAnimationFrame(frame); window.removeEventListener('resize', resize); ctx.clearRect(0, 0, canvas.width, canvas.height) }
-  }, [event, reducedMotion])
+  }, [event])
   return <canvas ref={canvasRef} className="particle-canvas" aria-hidden="true" />
 }

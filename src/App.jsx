@@ -18,13 +18,6 @@ function App() {
   const [effect, setEffect] = useState(null)
   const [effectText, setEffectText] = useState(null)
   const [comboMessage, setComboMessage] = useState(null)
-  const [reducedMotion, setReducedMotion] = useState(() => window.matchMedia('(prefers-reduced-motion: reduce)').matches)
-  useEffect(() => {
-    const query = window.matchMedia('(prefers-reduced-motion: reduce)')
-    const update = () => setReducedMotion(query.matches)
-    query.addEventListener?.('change', update)
-    return () => query.removeEventListener?.('change', update)
-  }, [])
   useEffect(() => {
     if (game.status !== 'playing') return undefined
     const timer = window.setInterval(() => setNow(Date.now()), 200)
@@ -84,9 +77,9 @@ function App() {
   const outcome = game.status === 'won' ? 'クリア！' : game.status === 'lost' ? 'ゲームオーバー' : ''
   const visibleCombo = now - lastComboAt <= 2000 ? combo : 0
 
-  return <main className={`game-shell ${effect?.kind === 'lost' && !reducedMotion ? 'shake collapse-board' : ''} ${effect?.kind === 'won' ? 'celebrate' : ''} ${reducedMotion ? 'reduced-motion' : ''}`}>
-    <ParticleCanvas event={effect} reducedMotion={reducedMotion} />
-    {comboMessage && !reducedMotion && <div key={comboMessage.id} className="combo-marquee" aria-live="polite" aria-atomic="true" style={{ fontSize: `${Math.min(88, Math.max(24, window.innerWidth * 0.88 / (comboMessage.text.length * 0.62)))}px` }}><span>{comboMessage.text}</span><small>COMBO ×{comboMessage.combo}</small></div>}
+  return <main className={`game-shell ${effect?.kind === 'lost' ? 'shake collapse-board' : ''} ${effect?.kind === 'won' ? 'celebrate' : ''}`}>
+    <ParticleCanvas event={effect} />
+    {comboMessage && <div key={comboMessage.id} className="combo-marquee" aria-live="polite" aria-atomic="true" style={{ fontSize: `${Math.min(88, Math.max(24, window.innerWidth * 0.88 / (comboMessage.text.length * 0.62)))}px` }}><span>{comboMessage.text}</span><small>COMBO ×{comboMessage.combo}</small></div>}
     {effectText && <div key={effectText.id} className={`effect-banner ${effectText.kind}`} style={{ left: effectText.x, top: effectText.y, fontSize: ['won', 'lost', 'chain'].includes(effectText.kind) ? undefined : `${Math.min(64, 22 + Math.max(0, effectText.combo - 1) * 4)}px`, filter: `drop-shadow(0 0 ${Math.min(26, 5 + effectText.combo * 1.3)}px #ffca55)` }} aria-live="polite">{effectText.label}{effectText.points > 0 && !['won', 'lost', 'chain'].includes(effectText.kind) && <small>+{effectText.points}</small>}{effectText.kind === 'won' && <small>SCORE {effectText.score.toLocaleString()}</small>}{!['won', 'lost'].includes(effectText.kind) && effectText.combo > 0 && <small className="combo-label" style={{ fontSize: `${Math.min(27, 13 + effectText.combo * 1.2)}px` }}>COMBO ×{effectText.combo}</small>}</div>}
     <section className="game-card" aria-label="マインスイーパー">
       <div className="game-toolbar"><button className="restart" onClick={() => newGame()} aria-label="はじめから">↻ <span>はじめから</span></button><div className="difficulty" aria-label="難易度">{Object.entries(DIFFICULTIES).map(([key, item]) => <button key={key} className={game.difficulty === key ? 'selected' : ''} onClick={() => newGame(key)}>{item.label}</button>)}</div></div>
@@ -95,16 +88,15 @@ function App() {
       <div className="board-wrap"><div className={`board ${game.difficulty}`} role="grid" aria-label={`${game.config.rows}行${game.config.cols}列の盤面`} onContextMenu={e => e.preventDefault()}>
         {game.board.map((row, r) => row.map((cell, c) => {
           const shownMine = (game.status === 'lost' && cell.hasMine) || (game.status === 'won' && cell.hasMine && !cell.isFlagged)
-          const classes = ['tile', cell.isRevealed ? 'revealed' : '', cell.isFlagged ? 'flagged' : '', shownMine ? 'mine' : '', game.detonated?.[0] === r && game.detonated?.[1] === c ? 'detonated' : '', cell.isRevealed && cell.adjacentMines ? `n${cell.adjacentMines}` : '', game.status === 'lost' && !reducedMotion ? 'loss-collapse' : ''].filter(Boolean).join(' ')
+          const classes = ['tile', cell.isRevealed ? 'revealed' : '', cell.isFlagged ? 'flagged' : '', shownMine ? 'mine' : '', game.detonated?.[0] === r && game.detonated?.[1] === c ? 'detonated' : '', cell.isRevealed && cell.adjacentMines ? `n${cell.adjacentMines}` : '', game.status === 'lost' ? 'loss-collapse' : ''].filter(Boolean).join(' ')
           const tileIndex = r * game.config.cols + c + 1
           const randomOrder = Math.abs(Math.sin(tileIndex * 12.9898 + game.config.rows * 78.233) * 43758.5453) % 1
-          const fallStyle = game.status === 'lost' && !reducedMotion ? { '--fall-delay': `${Math.floor(randomOrder * 950)}ms`, '--fall-x': `${Math.round((randomOrder - 0.5) * 180)}px`, '--fall-rotation': `${Math.round((randomOrder - 0.5) * 900)}deg` } : undefined
+          const fallStyle = game.status === 'lost' ? { '--fall-delay': `${Math.floor(randomOrder * 950)}ms`, '--fall-x': `${Math.round((randomOrder - 0.5) * 180)}px`, '--fall-rotation': `${Math.round((randomOrder - 0.5) * 900)}deg` } : undefined
           return <button key={`${r}-${c}`} data-cell={`${r}-${c}`} role="gridcell" aria-label={`第${r + 1}行第${c + 1}列${cell.isFlagged ? '、旗' : cell.isRevealed ? (cell.hasMine ? '、地雷' : `、${cell.adjacentMines || '空白'}`) : '、未開封'}`} className={classes} style={fallStyle} onClick={() => cell.isRevealed ? chord(r, c) : flagMode ? flag(r, c) : open(r, c)} onContextMenu={e => { e.preventDefault(); flag(r, c) }} onAuxClick={e => { if (e.button === 1) { e.preventDefault(); chord(r, c) } }}>{cell.isFlagged ? <span className="flag-icon">⚑</span> : shownMine ? '✹' : cell.isRevealed && cell.adjacentMines ? cell.adjacentMines : ''}</button>
         }))}
       </div></div>
       <div className="board-footer"><div className="legend"><span><i className="legend-open"/> 開封済み</span><span><i className="legend-hidden"/> 未開封</span></div><button className={`flag-toggle ${flagMode ? 'active' : ''}`} aria-pressed={flagMode} onClick={() => setFlagMode(active => !active)}>⚑ <span>{flagMode ? '旗モード ON' : '旗モード'}</span></button></div>
       <div className="instructions"><span>操作のヒント</span><p>クリック／タップで開封 · 右クリックで旗 · 開封済みの数字を押すと周囲を一括開封</p></div>
-      <label className="motion-setting"><input type="checkbox" checked={reducedMotion} onChange={e => setReducedMotion(e.target.checked)} /> 動きを軽減</label>
     </section>
   </main>
 }
