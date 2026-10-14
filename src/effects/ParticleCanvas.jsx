@@ -34,7 +34,7 @@ export default function ParticleCanvas({ event }) {
         for (let i = 0; i < size; i++) {
           const angle = Math.PI * 2 * i / size + (Math.random() - 0.5) * 0.12
           const speed = 2.2 + Math.random() * 7.2
-          particles.push({ x, y, px: x, py: y, vx: Math.cos(angle) * speed, vy: Math.sin(angle) * speed, life: 0.8 + Math.random() * 0.65, decay: 0.005 + Math.random() * 0.006, size: 2 + Math.random() * 4.5, color: Math.random() < 0.22 ? '#fff4bd' : color, spin: Math.random() * 6, star: Math.random() < 0.42 })
+          particles.push({ x, y, px: x, py: y, vx: Math.cos(angle) * speed, vy: Math.sin(angle) * speed, life: 0.8 + Math.random() * 0.65, decay: 0.012 + Math.random() * 0.008, size: 2 + Math.random() * 4.5, color: Math.random() < 0.22 ? '#fff4bd' : color, spin: Math.random() * 6, star: Math.random() < 0.42 })
         }
       }
       const drawVictory = time => {
