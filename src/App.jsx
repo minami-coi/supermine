@@ -88,13 +88,9 @@ function App() {
     <ParticleCanvas event={effect} reducedMotion={reducedMotion} />
     {comboMessage && !reducedMotion && <div key={comboMessage.id} className="combo-marquee" aria-live="polite" aria-atomic="true" style={{ fontSize: `${Math.min(88, Math.max(24, window.innerWidth * 0.88 / (comboMessage.text.length * 0.62)))}px` }}><span>{comboMessage.text}</span><small>COMBO ×{comboMessage.combo}</small></div>}
     {effectText && <div key={effectText.id} className={`effect-banner ${effectText.kind}`} style={{ left: effectText.x, top: effectText.y, fontSize: ['won', 'lost', 'chain'].includes(effectText.kind) ? undefined : `${Math.min(64, 22 + Math.max(0, effectText.combo - 1) * 4)}px`, filter: `drop-shadow(0 0 ${Math.min(26, 5 + effectText.combo * 1.3)}px #ffca55)` }} aria-live="polite">{effectText.label}{effectText.points > 0 && !['won', 'lost', 'chain'].includes(effectText.kind) && <small>+{effectText.points}</small>}{effectText.kind === 'won' && <small>SCORE {effectText.score.toLocaleString()}</small>}{!['won', 'lost'].includes(effectText.kind) && effectText.combo > 0 && <small className="combo-label" style={{ fontSize: `${Math.min(27, 13 + effectText.combo * 1.2)}px` }}>COMBO ×{effectText.combo}</small>}</div>}
-    <header className="topbar"><div className="brand-mark">✳</div><div className="brand"><span>FIELD NOTES / 01</span><strong>Super Mine Sweeper</strong></div><span className="edition">MINESWEEPER CLUB</span></header>
-    <section className="intro"><div className="eyebrow">A LITTLE GAME OF LOGIC</div><h1>静かな盤面に、<br className="mobile-break"/>ひとつずつ答えを。</h1><p>数字を手がかりに、地雷のない道を見つけよう。</p></section>
     <section className="game-card" aria-label="マインスイーパー">
-      <div className="card-heading"><div><span className="eyebrow">TODAY'S FIELD</span><h2>ゲームボード</h2></div><button className="restart" onClick={() => newGame()} aria-label="リスタート">↻ <span>リスタート</span></button></div>
-      <div className="difficulty" aria-label="難易度">{Object.entries(DIFFICULTIES).map(([key, item]) => <button key={key} className={game.difficulty === key ? 'selected' : ''} onClick={() => newGame(key)}>{item.label}</button>)}</div>
-      <div className="stats"><div className="stat"><span>残り地雷</span><strong>{String(game.config.mines - game.flaggedCount).padStart(3, '0')}</strong></div><div className="status-face" aria-label={outcome || 'プレイ中'}>{game.status === 'won' ? '✦' : game.status === 'lost' ? '×' : '☺'}</div><div className="stat timer"><span>経過時間</span><strong>{formatTime(elapsed)}</strong></div></div>
-      <div className="scorebar"><div><span>SCORE</span><strong>{score.toLocaleString()}</strong></div><div className={visibleCombo ? 'combo-count active' : 'combo-count'}><span>COMBO</span><strong>{visibleCombo ? `×${visibleCombo}` : '—'}</strong></div><div><span>MAX COMBO</span><strong>{maxCombo}</strong></div></div>
+      <div className="game-toolbar"><button className="restart" onClick={() => newGame()} aria-label="はじめから">↻ <span>はじめから</span></button><div className="difficulty" aria-label="難易度">{Object.entries(DIFFICULTIES).map(([key, item]) => <button key={key} className={game.difficulty === key ? 'selected' : ''} onClick={() => newGame(key)}>{item.label}</button>)}</div></div>
+      <div className="game-metrics"><div className="metric"><span>残り地雷</span><strong>{game.config.mines - game.flaggedCount}</strong></div><div className="metric"><span>時間</span><strong>{formatTime(elapsed)}</strong></div><div className="metric"><span>SCORE</span><strong>{score.toLocaleString()}</strong></div><div className={visibleCombo ? 'metric combo-count active' : 'metric combo-count'}><span>COMBO</span><strong>{visibleCombo ? `×${visibleCombo}` : '—'}</strong></div><div className="metric"><span>最大コンボ</span><strong>{maxCombo}</strong></div></div>
       {outcome && <div className={`result ${game.status}`}>{outcome} <span>{game.status === 'won' ? `TIME ${formatTime(elapsed)} · MAX COMBO ${maxCombo}` : `SCORE ${score.toLocaleString()} · MAX COMBO ${maxCombo}`}</span></div>}
       <div className="board-wrap"><div className={`board ${game.difficulty}`} role="grid" aria-label={`${game.config.rows}行${game.config.cols}列の盤面`} onContextMenu={e => e.preventDefault()}>
         {game.board.map((row, r) => row.map((cell, c) => {
@@ -110,7 +106,6 @@ function App() {
       <div className="instructions"><span>操作のヒント</span><p>クリック／タップで開封 · 右クリックで旗 · 開封済みの数字を押すと周囲を一括開封</p></div>
       <label className="motion-setting"><input type="checkbox" checked={reducedMotion} onChange={e => setReducedMotion(e.target.checked)} /> 動きを軽減</label>
     </section>
-    <footer className="page-footer"><span>THINK SLOWLY. CLICK CAREFULLY.</span><span>NO. 001 — LOGIC & PATIENCE</span></footer>
   </main>
 }
 export default App
