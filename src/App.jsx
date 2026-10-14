@@ -5,6 +5,7 @@ import ParticleCanvas from './effects/ParticleCanvas'
 import './App.css'
 
 const formatTime = seconds => `${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, '0')}`
+const COMBO_MESSAGES = ['NICE!!', 'GOOD JOB!!', 'EXCELLENT!!!', 'UNSTOPPABLE!!!', 'MAXIMUM OVERDRIVE!!!!', 'ABSOLUTE CHAOS!!!!', 'LIMIT BREAK!!!!!!', 'WHAT IS HAPPENING!??!?!?!?!?']
 
 function App() {
   const [game, setGame] = useState(() => createGame('beginner'))
@@ -16,6 +17,7 @@ function App() {
   const [lastComboAt, setLastComboAt] = useState(0)
   const [effect, setEffect] = useState(null)
   const [effectText, setEffectText] = useState(null)
+  const [comboMessage, setComboMessage] = useState(null)
   const [reducedMotion, setReducedMotion] = useState(() => window.matchMedia('(prefers-reduced-motion: reduce)').matches)
   useEffect(() => {
     const query = window.matchMedia('(prefers-reduced-motion: reduce)')
@@ -36,7 +38,7 @@ function App() {
 
   const elapsed = game.startedAt ? Math.floor(((game.endedAt ?? now) - game.startedAt) / 1000) : 0
   const newGame = (difficulty = game.difficulty) => {
-    setGame(createGame(difficulty)); setFlagMode(false); setNow(Date.now()); setScore(0); setCombo(0); setMaxCombo(0); setLastComboAt(0); setEffect(null); setEffectText(null)
+    setGame(createGame(difficulty)); setFlagMode(false); setNow(Date.now()); setScore(0); setCombo(0); setMaxCombo(0); setLastComboAt(0); setEffect(null); setEffectText(null); setComboMessage(null)
   }
   const applyAction = (operation, kind, row, col) => {
     const next = operation(game)
@@ -52,6 +54,10 @@ function App() {
     if (comboAction) {
       nextCombo = now - lastComboAt <= 2000 ? combo + 1 : 1
       setCombo(nextCombo); setLastComboAt(now); setMaxCombo(value => Math.max(value, nextCombo))
+      if (nextCombo >= 4 && next.status === 'playing') {
+        const messageIndex = Math.min(COMBO_MESSAGES.length - 1, nextCombo - 4)
+        setComboMessage({ id: `${Date.now()}-${Math.random()}`, text: COMBO_MESSAGES[messageIndex], combo: nextCombo })
+      }
       const multiplier = comboMultiplier(nextCombo)
       if (safeOpen) points += openedSafe * 10 * multiplier
       if (next.status === 'won') points += 500
@@ -80,6 +86,7 @@ function App() {
 
   return <main className={`game-shell ${effect?.kind === 'lost' && !reducedMotion ? 'shake collapse-board' : ''} ${effect?.kind === 'won' ? 'celebrate' : ''} ${reducedMotion ? 'reduced-motion' : ''}`}>
     <ParticleCanvas event={effect} reducedMotion={reducedMotion} />
+    {comboMessage && !reducedMotion && <div key={comboMessage.id} className="combo-marquee" aria-live="polite" aria-atomic="true" style={{ fontSize: `${Math.min(88, Math.max(24, window.innerWidth * 0.88 / (comboMessage.text.length * 0.62)))}px` }}><span>{comboMessage.text}</span><small>COMBO ×{comboMessage.combo}</small></div>}
     {effectText && <div key={effectText.id} className={`effect-banner ${effectText.kind}`} style={{ left: effectText.x, top: effectText.y, fontSize: ['won', 'lost', 'chain'].includes(effectText.kind) ? undefined : `${Math.min(64, 22 + Math.max(0, effectText.combo - 1) * 4)}px`, filter: `drop-shadow(0 0 ${Math.min(26, 5 + effectText.combo * 1.3)}px #ffca55)` }} aria-live="polite">{effectText.label}{effectText.points > 0 && !['won', 'lost', 'chain'].includes(effectText.kind) && <small>+{effectText.points}</small>}{effectText.kind === 'won' && <small>SCORE {effectText.score.toLocaleString()}</small>}{!['won', 'lost'].includes(effectText.kind) && effectText.combo > 0 && <small className="combo-label" style={{ fontSize: `${Math.min(27, 13 + effectText.combo * 1.2)}px` }}>COMBO ×{effectText.combo}</small>}</div>}
     <header className="topbar"><div className="brand-mark">✳</div><div className="brand"><span>FIELD NOTES / 01</span><strong>Super Mine Sweeper</strong></div><span className="edition">MINESWEEPER CLUB</span></header>
     <section className="intro"><div className="eyebrow">A LITTLE GAME OF LOGIC</div><h1>静かな盤面に、<br className="mobile-break"/>ひとつずつ答えを。</h1><p>数字を手がかりに、地雷のない道を見つけよう。</p></section>
